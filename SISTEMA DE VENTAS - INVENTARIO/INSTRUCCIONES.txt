@@ -1,0 +1,7 @@
+Mejoras incluidas:
+- Inventario agrupado por código.
+- Buscar código y ver todas las tallas, colores y cantidades.
+- Editar código completo y cambiar precio/costo a todas las variantes.
+- Registrar venta con varios productos.
+- Precio manual por producto en cada venta.
+- Total a cobrar, monto pagado y cambio.
