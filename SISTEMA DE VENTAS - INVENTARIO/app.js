@@ -34,12 +34,53 @@ window.abrirEditarCodigo=cod=>{const arr=productos.filter(p=>p.codigo===cod),p0=
 window.cerrarModal=()=>modalEditarCodigo.classList.add("oculto");
 window.guardarEdicionCodigo=async()=>{const filas=[...document.querySelectorAll(".matriz-fila")];for(const f of filas){await updateDoc(doc(db,"productos",f.dataset.id),{codigo:editCodigo.value.trim().toUpperCase(),nombre:editNombre.value.trim().toUpperCase(),categoria:editCategoria.value.trim().toUpperCase(),genero:editGenero.value,costo:Number(editCosto.value),precio:Number(editPrecio.value),proveedor:editProveedor.value.trim(),descripcion:editDescripcion.value.trim(),talla:f.querySelector(".mTalla").value.trim().toUpperCase(),color:f.querySelector(".mColor").value.trim().toUpperCase(),cantidad:Number(f.querySelector(".mCantidad").value)})}alert("Código actualizado completo");cerrarModal();}
 
-window.filtrarProductosVenta=()=>llenarProductosVenta();
-function llenarProductosVenta(){const q=(buscarVentaCodigo?.value||"").toLowerCase();productoVenta.innerHTML="";productos.filter(p=>Number(p.cantidad)>0&&(p.codigo+p.nombre+p.talla+p.color).toLowerCase().includes(q)).forEach(p=>{productoVenta.innerHTML+=`<option value="${p.id}">${p.codigo} - ${p.nombre} / ${p.talla} / ${p.color} / Stock: ${p.cantidad} / ${dinero(p.precio)}</option>`});mostrarDetalleVenta()}
-productoVenta.addEventListener("change",mostrarDetalleVenta);
-function mostrarDetalleVenta(){const p=productos.find(x=>x.id===productoVenta.value);detalleProductoVenta.innerHTML=p?`<h3>${p.codigo} - ${p.nombre}</h3><p>Talla: ${p.talla} · Color: ${p.color} · Precio sugerido: ${dinero(p.precio)} · Stock: ${p.cantidad}</p>${p.imagen?`<img class="mini-img" src="${p.imagen}">`:""}`:"No hay productos disponibles.";if(p)precioVentaManual.value=p.precio||0}
 
-window.agregarAlCarrito=()=>{const p=productos.find(x=>x.id===productoVenta.value);if(!p)return alert("Selecciona un producto");const cant=Number(cantidadVenta.value),precio=Number(precioVentaManual.value);if(cant<=0||precio<0)return alert("Cantidad o precio inválido");const ya=carrito.filter(x=>x.productoId===p.id).reduce((s,x)=>s+x.cantidad,0);if(ya+cant>Number(p.cantidad))return alert("No hay stock suficiente");carrito.push({productoId:p.id,codigo:p.codigo,nombre:p.nombre,talla:p.talla,color:p.color,cantidad:cant,precio,costo:Number(p.costo),subtotal:cant*precio});cantidadVenta.value=1;precioVentaManual.value="";renderizarCarrito();}
+let variantesVenta = [];
+let productoSeleccionadoVenta = null;
+
+window.buscarCodigoVenta = function(){
+  const q = (buscarVentaCodigo.value || "").trim().toLowerCase();
+  variantesVenta = productos.filter(p => Number(p.cantidad) > 0 && (String(p.codigo).toLowerCase().includes(q) || String(p.nombre).toLowerCase().includes(q)));
+  const colores = [...new Set(variantesVenta.map(p => p.color))].sort();
+  colorVenta.innerHTML = colores.length ? '<option value="">Selecciona color</option>' : '<option>No hay stock disponible</option>';
+  colores.forEach(c => colorVenta.innerHTML += `<option value="${c}">${c}</option>`);
+  tallaVenta.innerHTML = '<option>Selecciona color</option>';
+  productoSeleccionadoVenta = null;
+  precioVentaManual.value = "";
+  mostrarDetalleVenta();
+}
+
+window.actualizarTallasVenta = function(){
+  const color = colorVenta.value;
+  const tallas = variantesVenta.filter(p => p.color === color).sort((a,b)=>String(a.talla).localeCompare(String(b.talla)));
+  tallaVenta.innerHTML = tallas.length ? '<option value="">Selecciona talla</option>' : '<option>No hay tallas</option>';
+  tallas.forEach(p => {
+    tallaVenta.innerHTML += `<option value="${p.id}">${p.talla} / Stock: ${p.cantidad} / ${dinero(p.precio)}</option>`;
+  });
+  productoSeleccionadoVenta = null;
+  precioVentaManual.value = "";
+  mostrarDetalleVenta();
+}
+
+window.seleccionarVarianteVenta = function(){
+  productoSeleccionadoVenta = productos.find(p => p.id === tallaVenta.value) || null;
+  if (productoSeleccionadoVenta) precioVentaManual.value = productoSeleccionadoVenta.precio || 0;
+  mostrarDetalleVenta();
+}
+
+function llenarProductosVenta(){
+  // Ya no se llena un selector general. Ahora se busca por código, luego color y talla.
+  if (!colorVenta.innerHTML.trim()) buscarCodigoVenta();
+}
+
+function mostrarDetalleVenta(){
+  const p = productoSeleccionadoVenta;
+  detalleProductoVenta.innerHTML = p
+    ? `<h3>${p.codigo} - ${p.nombre}</h3><p>Color: ${p.color} · Talla: ${p.talla} · Precio sugerido: ${dinero(p.precio)} · Stock: ${p.cantidad}</p>${p.imagen?`<img class="mini-img" src="${p.imagen}">`:""}`
+    : `<p>Escribe el código o modelo, luego selecciona el color y la talla disponible.</p>`;
+}
+
+window.agregarAlCarrito=()=>{const p=productoSeleccionadoVenta;if(!p)return alert("Selecciona color y talla");const cant=Number(cantidadVenta.value),precio=Number(precioVentaManual.value);if(cant<=0||precio<0)return alert("Cantidad o precio inválido");const ya=carrito.filter(x=>x.productoId===p.id).reduce((s,x)=>s+x.cantidad,0);if(ya+cant>Number(p.cantidad))return alert("No hay stock suficiente");carrito.push({productoId:p.id,codigo:p.codigo,nombre:p.nombre,talla:p.talla,color:p.color,cantidad:cant,precio,costo:Number(p.costo),subtotal:cant*precio});cantidadVenta.value=1;precioVentaManual.value="";renderizarCarrito();}
 function renderizarCarrito(){tablaCarrito.innerHTML="";carrito.forEach((x,i)=>tablaCarrito.innerHTML+=`<tr><td>${x.codigo} - ${x.nombre}</td><td>${x.talla}</td><td>${x.color}</td><td>${x.cantidad}</td><td>${dinero(x.precio)}</td><td>${dinero(x.subtotal)}</td><td><button onclick="quitarCarrito(${i})">Quitar</button></td></tr>`);calcularCambio();}
 window.quitarCarrito=i=>{carrito.splice(i,1);renderizarCarrito()}
 window.calcularCambio=()=>{const total=carrito.reduce((s,x)=>s+x.subtotal,0),pagado=Number(montoPagado.value)||0;totalCarrito.textContent=dinero(total);cambioVenta.textContent=dinero(Math.max(0,pagado-total));}
@@ -56,4 +97,6 @@ window.eliminarGasto=async id=>await deleteDoc(doc(db,"gastos",id))
 
 function actualizarInicio(){const hoy=hoyISO(),mes=mesActual(),vHoy=ventas.filter(v=>String(v.fecha).slice(0,10)===hoy),vMes=ventas.filter(v=>String(v.fecha).slice(0,7)===mes),totalMes=vMes.reduce((s,v)=>s+Number(v.total),0),costoMes=vMes.reduce((s,v)=>s+Number(v.costo),0),gasto=gastos.reduce((s,g)=>s+Number(g.monto),0);ventasHoy.textContent=dinero(vHoy.reduce((s,v)=>s+Number(v.total),0));ventasMes.textContent=dinero(totalMes);gananciaNeta.textContent=dinero(totalMes-costoMes-gasto);totalPrendas.textContent=productos.reduce((s,p)=>s+Number(p.cantidad),0);cantidadStockBajo.textContent=productos.filter(p=>Number(p.cantidad)<=2).length;reporteVendido.textContent=dinero(totalMes);reporteCosto.textContent=dinero(costoMes);reporteGastos.textContent=dinero(gasto);reporteGanancia.textContent=dinero(totalMes-costoMes-gasto);productoTop.textContent="Ver más vendidos"}
 window.descargarVentas=()=>{const filas=["Fecha,Detalle,Total,Pagado,Cambio,Metodo,Ganancia"];ventas.forEach(v=>filas.push(`${v.fecha},"${(v.items||[]).map(i=>i.codigo+" "+i.nombre+" "+i.talla+"/"+i.color+" x"+i.cantidad).join(" | ")}",${v.total},${v.pagado||v.total},${v.cambio||0},${v.metodo},${v.ganancia}`));const blob=new Blob([filas.join("\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="ventas-euro-moda.csv";a.click()}
+window.descargarInventario=function(){const filas=["Codigo,Producto,Categoria,Genero,Talla,Color,Cantidad,Costo,Precio"];productos.forEach(p=>filas.push(`${p.codigo},${p.nombre},${p.categoria},${p.genero},${p.talla},${p.color},${p.cantidad},${p.costo},${p.precio}`));const blob=new Blob([filas.join("\n")],{type:"text/csv"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="inventario-euro-moda.csv";a.click()};
+window.limpiarCarrito=function(){carrito=[];montoPagado.value="";clienteVenta.value="";renderizarCarrito()};
 function actualizarTodo(){renderizarInventarioAgrupado();llenarProductosVenta();renderizarVentas();renderizarStockBajo();renderizarMasVendidos();renderizarGastos();actualizarInicio();renderizarCarrito();}

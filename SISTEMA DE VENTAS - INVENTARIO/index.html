@@ -65,10 +65,11 @@
 <h2>Registrar venta</h2>
 <div class="bloque"><h3>Agregar productos a la venta</h3>
 <div class="formulario">
-<input id="buscarVentaCodigo" placeholder="Buscar por código o modelo..." oninput="filtrarProductosVenta()">
-<select id="productoVenta"></select>
+<input id="buscarVentaCodigo" placeholder="Escribe el código. Ej: CC" oninput="buscarCodigoVenta()">
+<select id="colorVenta" onchange="actualizarTallasVenta()"><option>Primero busca un código</option></select>
+<select id="tallaVenta" onchange="seleccionarVarianteVenta()"><option>Selecciona color</option></select>
 <input id="cantidadVenta" type="number" min="1" value="1" placeholder="Cantidad">
-<input id="precioVentaManual" type="number" step="0.01" min="0" placeholder="Precio unitario de venta">
+<input id="precioVentaManual" type="number" step="0.01" min="0" placeholder="Precio al que se vende">
 <button type="button" onclick="agregarAlCarrito()">Agregar a la venta</button>
 </div>
 <div id="detalleProductoVenta" class="detalle-venta"></div>
